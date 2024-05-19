@@ -1,0 +1,8 @@
+id.jasonhk.space {
+	tls {
+		dns cloudflare {env.CF_API_TOKEN}
+	}
+
+	encode gzip
+	reverse_proxy keycloak:8080
+}

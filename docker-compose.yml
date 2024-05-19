@@ -1,0 +1,62 @@
+name: identity
+
+services:
+  caddy:
+    container_name: ${COMPOSE_PROJECT_NAME}-caddy
+    build:
+      context: ./caddy
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    env_file: caddy.env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+  keycloak:
+    container_name: ${COMPOSE_PROJECT_NAME}-keycloak
+#    image: quay.io/keycloak/keycloak:24.0
+    build:
+      context: ./keycloak
+    restart: unless-stopped
+    depends_on:
+      - caddy
+      - database
+    expose:
+      - 8080:8080
+      - 8443:8443
+    environment:
+#      KC_DB: mariadb
+      KC_DB_URL: jdbc:mariadb://database/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KC_HOSTNAME: id.jasonhk.space
+
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+
+      KEYCLOAK_ADMIN: shinju-sama
+      KEYCLOAK_ADMIN_PASSWORD: password
+    command: start --optimized
+  database:
+    container_name: ${COMPOSE_PROJECT_NAME}-database
+    image: mariadb:11
+    restart: unless-stopped
+    expose:
+      - 3306:3306
+    environment:
+      MARIADB_DATABASE: keycloak
+      MARIADB_USER: keycloak
+      MARIADB_PASSWORD: keycloak
+      MARIADB_RANDOM_ROOT_PASSWORD: "true"
+    volumes:
+      - database:/var/lib/mysql
+
+volumes:
+  caddy-data:
+  caddy-config:
+  database:
